@@ -1,102 +1,105 @@
-# Portfolio Monitor
+# Portfolio Monitor (v2)
 
-A simple Streamlit app to track a watchlist of US-listed stocks, with portfolio P&L, upcoming earnings dates, and recent SEC filings.
+A simple Streamlit app to track a watchlist of US-listed stocks, with portfolio P&L, upcoming earnings dates, recent SEC filings, and per-ticker notes. Data persists across sessions via Supabase.
 
-## Features (v1)
+## What's new in v2
 
-- **Dynamic watchlist** — add/remove tickers through the UI
-- **Live prices** — current price + daily change for each ticker
-- **Portfolio P&L** — manual entry of holdings (ticker, shares, cost basis), unrealized P&L calculation
-- **Upcoming earnings** — next earnings date for each tracked ticker
-- **SEC filings** — recent 10-K, 10-Q, 8-K, DEF 14A and other relevant filings (last 30 days, configurable)
-- **Save / restore** — download watchlist and holdings as CSV, upload to restore between sessions
+- **Persistent storage** — watchlist + notes + holdings auto-save to Supabase. No more CSV download/upload.
+- **Notes per ticker** — record your thesis or tracking reason for each name. Visible in the watchlist view.
+- **Setup tab** — first-time configuration walkthrough is built into the app itself.
 
 ## Cost: $0
 
 - Free hosting on Streamlit Community Cloud
-- Free data via Yahoo Finance (yfinance) and SEC EDGAR
-- No API keys required
+- Free database via Supabase (free tier: 500MB DB, 2GB egress/month — way more than this app needs)
+- Free data via Yahoo Finance and SEC EDGAR
+- No API keys required for the data sources
 
-## Deployment guide (zero local install required)
+## Deployment guide
 
-You can do all of this from a browser only — useful if your work laptop doesn't allow installs.
+### Already on v1?
 
-### Step 1: Create a free GitHub account (if you don't have one)
+Replace your existing `app.py` with the new one and update `requirements.txt` if needed. Then follow the **Supabase setup** section below to enable persistence. Without Supabase configured, the app falls back to session-only storage (works exactly like v1).
 
-Go to https://github.com → Sign up.
+### Fresh install?
 
-### Step 2: Create a new public repository
+You'll need three things deployed: GitHub repo, Streamlit Cloud app, Supabase project. All can be set up from a browser only.
 
-1. Click the "+" icon top right → "New repository"
-2. Name it something like `portfolio-monitor`
-3. Set it to **Public** (required for Streamlit Community Cloud free tier)
-4. Check "Add a README file"
-5. Click "Create repository"
+#### Step 1: GitHub repo
 
-### Step 3: Add the app files via GitHub web editor
+1. Sign in at https://github.com (create account if needed)
+2. Click **+** → **New repository**
+3. Name it (e.g. `portfolio-monitor`), make it **Public**, check "Add a README"
+4. Click **Create repository**
+5. For each file in this folder (`app.py`, `requirements.txt`, `README.md`), click **Add file** → **Create new file**, paste the contents, scroll down, click **Commit new file**
 
-For each of the three files in this folder (`app.py`, `requirements.txt`, `README.md`):
-
-1. In your new repo, click "Add file" → "Create new file"
-2. Type the filename (e.g. `app.py`)
-3. Paste the file contents
-4. Scroll down, click "Commit new file"
-
-Repeat for `requirements.txt` and `README.md`.
-
-### Step 4: Deploy on Streamlit Community Cloud
+#### Step 2: Streamlit Community Cloud
 
 1. Go to https://share.streamlit.io
-2. Click "Sign in with GitHub" — authorize Streamlit
-3. Click "New app"
-4. Select your repository (`portfolio-monitor`)
-5. Branch: `main`
-6. Main file path: `app.py`
-7. Click "Deploy"
+2. Sign in with GitHub
+3. Click **New app**
+4. Select your repo, branch `main`, main file `app.py`
+5. Click **Deploy**
+6. Wait 2-3 minutes for first deploy. You'll get a URL like `https://yourusername-portfolio-monitor.streamlit.app/`
 
-Wait 2-3 minutes for the first deployment. Streamlit will install dependencies from `requirements.txt` and start the app. You'll get a URL like `https://yourusername-portfolio-monitor.streamlit.app/`.
+The app should now load. It'll show "● Session-only (no Supabase)" in the sidebar — that's expected. Continue to step 3 to enable persistence.
 
-That URL is your app. Bookmark it. Open it from any browser, including your work laptop.
+#### Step 3: Supabase setup
 
-### Updating the app later
+Open your deployed app. Click the **⚙️ Setup** tab. The app contains step-by-step instructions for:
+- Creating a free Supabase account
+- Creating a project
+- Running the SQL to create tables
+- Getting your API credentials
+- Adding them as secrets in Streamlit Cloud
 
-Edit any file in your GitHub repo (via web editor), commit changes, and Streamlit Cloud auto-redeploys within a minute.
+Total time: ~10 minutes.
 
-## Privacy note
+When done, the sidebar will show "● Supabase connected" and your data persists across sessions.
 
-The app's **code** is in a public GitHub repo. That's just generic stock-tracking code — nothing sensitive.
+## Privacy
 
-Your **watchlist and holdings** are stored only in your browser session. They're never sent to GitHub or stored anywhere persistent. To save between sessions, use the "Download CSV" buttons in the sidebar and re-upload next time.
+- **Code** is in your public GitHub repo. No sensitive data lives in code.
+- **Watchlist + holdings + notes** live in your Supabase project (private).
+- **Supabase credentials** are in Streamlit Cloud secrets (not in your repo).
+- **Anyone with your Streamlit URL** can see the app — but they need your Supabase credentials to read/write your data.
 
-## Limitations of v1
+If you want to lock the app itself behind a password, add `streamlit-authenticator` to `requirements.txt` and we can add login on a future iteration.
 
-- Holdings persistence is manual (CSV download/upload). v2 could add a free cloud database.
-- Yahoo Finance data is delayed up to 15 min and occasionally has gaps.
-- Earnings dates are sometimes wrong (yfinance returns last announced date instead of next). Verify before acting.
+## Limitations of v2
+
+- Yahoo Finance data is delayed 15 min and occasionally has gaps.
+- Earnings dates from yfinance can be stale (returns last announced instead of next). Always verify before acting.
 - SEC EDGAR rate-limited at ~10 req/sec. Fine for watchlists under 50 names.
 - US-listed stocks only. ADRs work; pure foreign-listed equities won't.
-- Crypto not supported in v1.
+- Crypto not supported.
 
 ## Troubleshooting
 
-**App fails to load on first deployment.**
-Usually a `requirements.txt` issue. Check Streamlit Cloud logs. If yfinance fails, try pinning version: `yfinance==0.2.51`.
+**App loads but Supabase shows error.**
+Check Streamlit Cloud → Settings → Secrets. Make sure `SUPABASE_URL` and `SUPABASE_ANON_KEY` are present and there are no extra spaces or quotes wrong.
 
-**Prices show as `—` for some tickers.**
-Yahoo Finance data gap — try refreshing in 5 min, or check if ticker is correct.
+**Can't add holdings — they don't save.**
+Check the Setup tab. If Supabase isn't connected, the app falls back to session-only mode (data lost on browser close).
 
-**Earnings date looks wrong.**
-yfinance sometimes returns past dates. Cross-check with company IR page.
+**Tables don't exist error.**
+Re-run the SQL from the Setup tab in Supabase's SQL Editor.
+
+**Earnings date wrong.**
+Cross-check with company IR page. yfinance is unreliable for this.
 
 **SEC filings empty for a ticker.**
-Some tickers don't map cleanly to SEC CIK. Check the ticker is US-listed and reports to SEC.
+Some tickers don't map to SEC CIK (foreign listings, micro caps). The app skips silently.
 
-## Future versions
+## Possible v3 features
 
-Possible v2 additions:
-- Persistent database (Supabase free tier) so holdings save automatically
-- News aggregation per ticker
-- Decision journal (capture buy/sell rationale + post-mortem)
-- Crypto tracking
-- Charts (price history, technicals)
+In rough order of usefulness:
+- Crypto support (Binance/Coinbase APIs)
+- Decision journal (capture buy/sell rationale + post-mortem reviews)
+- Price history charts (1Y, 5Y per ticker)
+- Earnings call transcript links
 - Alerts when earnings approach or filings drop
+- Multiple watchlists / tags
+- Authentication (login required to view)
+
+Tell me which one(s) matter most after you've used v2 for a few weeks.
